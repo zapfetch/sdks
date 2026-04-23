@@ -172,9 +172,7 @@ impl Client {
             .json(&body)
             .send()
             .await
-            .map_err(|e| {
-                Error::HttpError(format!("Starting crawl of {:?}", url.as_ref()), e)
-            })?;
+            .map_err(|e| Error::HttpError(format!("Starting crawl of {:?}", url.as_ref()), e))?;
 
         self.handle_response(response, "start crawl").await
     }
@@ -215,9 +213,7 @@ impl Client {
             .headers(self.prepare_headers(None))
             .send()
             .await
-            .map_err(|e| {
-                Error::HttpError(format!("Checking crawl status {}", id.as_ref()), e)
-            })?;
+            .map_err(|e| Error::HttpError(format!("Checking crawl status {}", id.as_ref()), e))?;
 
         let mut status: CrawlJob = self
             .handle_response(response, format!("crawl status {}", id.as_ref()))
@@ -300,11 +296,7 @@ impl Client {
     }
 
     /// Waits for a crawl job to complete.
-    async fn wait_for_crawl(
-        &self,
-        id: &str,
-        poll_interval: u64,
-    ) -> Result<CrawlJob, Error> {
+    async fn wait_for_crawl(&self, id: &str, poll_interval: u64) -> Result<CrawlJob, Error> {
         loop {
             let status = self.get_crawl_status(id).await?;
 
@@ -354,19 +346,14 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn cancel_crawl(
-        &self,
-        id: impl AsRef<str>,
-    ) -> Result<CancelCrawlResponse, Error> {
+    pub async fn cancel_crawl(&self, id: impl AsRef<str>) -> Result<CancelCrawlResponse, Error> {
         let response = self
             .client
             .delete(self.url(&format!("/crawl/{}", id.as_ref())))
             .headers(self.prepare_headers(None))
             .send()
             .await
-            .map_err(|e| {
-                Error::HttpError(format!("Cancelling crawl {}", id.as_ref()), e)
-            })?;
+            .map_err(|e| Error::HttpError(format!("Cancelling crawl {}", id.as_ref()), e))?;
 
         self.handle_response(response, "cancel crawl").await
     }
@@ -408,9 +395,7 @@ impl Client {
             .headers(self.prepare_headers(None))
             .send()
             .await
-            .map_err(|e| {
-                Error::HttpError(format!("Getting crawl errors {}", id.as_ref()), e)
-            })?;
+            .map_err(|e| Error::HttpError(format!("Getting crawl errors {}", id.as_ref()), e))?;
 
         self.handle_response(response, "crawl errors").await
     }

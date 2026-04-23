@@ -392,10 +392,7 @@ impl Client {
             .send()
             .await
             .map_err(|e| {
-                Error::HttpError(
-                    format!("Stopping interaction for {}", job_id.as_ref()),
-                    e,
-                )
+                Error::HttpError(format!("Stopping interaction for {}", job_id.as_ref()), e)
             })?;
 
         self.handle_response(response, "stop interaction").await

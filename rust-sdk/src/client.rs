@@ -143,8 +143,8 @@ impl Client {
                 },
             ));
         }
-        let api_url = std::env::var("ZAPFETCH_API_URL")
-            .unwrap_or_else(|_| CLOUD_API_URL.to_string());
+        let api_url =
+            std::env::var("ZAPFETCH_API_URL").unwrap_or_else(|_| CLOUD_API_URL.to_string());
         Client::new_selfhosted(api_url, Some(api_key))
     }
 
@@ -209,8 +209,7 @@ impl Client {
             .await
             .map_err(Error::ResponseParseErrorText)
             .and_then(|response_json| {
-                serde_json::from_str::<Value>(&response_json)
-                    .map_err(Error::ResponseParseError)
+                serde_json::from_str::<Value>(&response_json).map_err(Error::ResponseParseError)
             })
             .and_then(|response_value| {
                 // Check for success field, or allow responses without it for status checks
@@ -219,8 +218,7 @@ impl Client {
                     || response_value["success"].as_bool().unwrap_or(false)
                     || response_value.get("success").is_none()
                 {
-                    serde_json::from_value::<T>(response_value)
-                        .map_err(Error::ResponseParseError)
+                    serde_json::from_value::<T>(response_value).map_err(Error::ResponseParseError)
                 } else {
                     Err(Error::Api(
                         action.as_ref().to_string(),
@@ -232,8 +230,7 @@ impl Client {
 
         match &response {
             Ok(_) => response,
-            Err(Error::ResponseParseError(_))
-            | Err(Error::ResponseParseErrorText(_)) => {
+            Err(Error::ResponseParseError(_)) | Err(Error::ResponseParseErrorText(_)) => {
                 if is_success {
                     response
                 } else {
@@ -332,12 +329,8 @@ mod tests {
     #[test]
     fn test_with_http_client_overrides_reqwest() {
         let http = reqwest::Client::builder().no_proxy().build().unwrap();
-        let client = Client::with_http_client(
-            "http://localhost:3000",
-            Some("api-key"),
-            http,
-        )
-        .unwrap();
+        let client =
+            Client::with_http_client("http://localhost:3000", Some("api-key"), http).unwrap();
         assert_eq!(client.api_url, "http://localhost:3000");
         assert_eq!(client.api_key, Some("api-key".to_string()));
     }

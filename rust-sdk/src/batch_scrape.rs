@@ -192,10 +192,7 @@ impl Client {
             .send()
             .await
             .map_err(|e| {
-                Error::HttpError(
-                    format!("Checking batch scrape status {}", id.as_ref()),
-                    e,
-                )
+                Error::HttpError(format!("Checking batch scrape status {}", id.as_ref()), e)
             })?;
 
         let mut status: BatchScrapeJob = self
@@ -215,19 +212,14 @@ impl Client {
     }
 
     /// Fetches the next page of batch scrape results.
-    async fn get_batch_scrape_status_next(
-        &self,
-        next: &str,
-    ) -> Result<BatchScrapeJob, Error> {
+    async fn get_batch_scrape_status_next(&self, next: &str) -> Result<BatchScrapeJob, Error> {
         let response = self
             .client
             .get(next)
             .headers(self.prepare_headers(None))
             .send()
             .await
-            .map_err(|e| {
-                Error::HttpError(format!("Paginating batch scrape at {}", next), e)
-            })?;
+            .map_err(|e| Error::HttpError(format!("Paginating batch scrape at {}", next), e))?;
 
         self.handle_response(response, "batch scrape pagination")
             .await

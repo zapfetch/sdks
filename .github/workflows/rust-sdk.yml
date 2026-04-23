@@ -1,0 +1,47 @@
+name: rust-sdk
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'rust-sdk/**'
+      - '.github/workflows/rust-sdk.yml'
+  pull_request:
+    paths:
+      - 'rust-sdk/**'
+      - '.github/workflows/rust-sdk.yml'
+
+defaults:
+  run:
+    working-directory: rust-sdk
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo artefacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust-sdk
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo check --all-targets
+        run: cargo check --all-targets --locked
+
+      - name: cargo test --lib
+        run: cargo test --lib --locked
+
+      - name: cargo build --examples
+        run: cargo build --examples --locked
+
+      - name: cargo clippy
+        run: cargo clippy --all-targets --locked

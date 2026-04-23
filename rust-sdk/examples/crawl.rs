@@ -10,7 +10,9 @@ use zapfetch::{Client, CrawlOptions, Format, ScrapeOptions};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::from_env()?;
-    let target = env::args().nth(1).unwrap_or_else(|| "https://example.com".into());
+    let target = env::args()
+        .nth(1)
+        .unwrap_or_else(|| "https://example.com".into());
 
     let job = client
         .crawl(
