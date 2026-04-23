@@ -1,0 +1,42 @@
+name: go-sdk
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'go-sdk/**'
+      - '.github/workflows/go-sdk.yml'
+  pull_request:
+    paths:
+      - 'go-sdk/**'
+      - '.github/workflows/go-sdk.yml'
+
+defaults:
+  run:
+    working-directory: go-sdk
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: go-sdk/go.sum
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go build
+        run: go build ./...
+
+      - name: go test (-race)
+        run: go test -race -count=1 ./...
+
+      - name: go test (coverage)
+        run: |
+          go test -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -1

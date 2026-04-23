@@ -1,0 +1,46 @@
+name: js-sdk
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'js-sdk/**'
+      - '.github/workflows/js-sdk.yml'
+  pull_request:
+    paths:
+      - 'js-sdk/**'
+      - '.github/workflows/js-sdk.yml'
+
+defaults:
+  run:
+    working-directory: js-sdk
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: js-sdk/pnpm-lock.yaml
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: typecheck
+        run: pnpm run typecheck
+
+      - name: test (unit)
+        run: pnpm run test:unit
+
+      - name: build
+        run: pnpm run build
