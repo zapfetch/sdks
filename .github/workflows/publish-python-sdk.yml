@@ -1,0 +1,67 @@
+# Triggered when a GitHub Release is published with a tag of the form
+# `python-sdk/vX.Y.Z`. Verifies the tag matches __version__, runs pytest
+# as a sanity gate, then publishes to PyPI via OIDC Trusted Publisher.
+#
+# No secrets needed -- configure Trusted Publisher once at:
+#   https://pypi.org/manage/project/zapfetch-py/settings/publishing/
+#   Owner: zapfetch, Repo: sdks, Workflow: publish-python-sdk.yml,
+#   Environment: pypi
+#
+# Required environment:
+#   pypi  (Settings -> Environments -> New: pypi, add required reviewer)
+
+name: publish-python-sdk
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write  # required for PyPI OIDC
+
+jobs:
+  publish:
+    if: startsWith(github.event.release.tag_name, 'python-sdk/v')
+    runs-on: ubuntu-latest
+    environment: pypi
+    defaults:
+      run:
+        working-directory: python-sdk
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: python-sdk/pyproject.toml
+
+      - name: Verify tag version matches __version__
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          TAG_VERSION="${TAG_NAME#python-sdk/v}"
+          CODE_VERSION=$(python -c "import re; print(re.search(r'__version__\s*=\s*[\'\"]([^\'\"]+)', open('zapfetch/__init__.py').read()).group(1))")
+          if [ "$TAG_VERSION" != "$CODE_VERSION" ]; then
+            echo "::error::tag version $TAG_VERSION != code version $CODE_VERSION"
+            exit 1
+          fi
+          echo "Verified: $TAG_VERSION"
+
+      - name: Install + test
+        run: |
+          python -m pip install --upgrade pip build
+          pip install -e .
+          pip install pytest pytest-asyncio
+          pytest zapfetch/__tests__/unit/ tests/ -q
+
+      - name: Build sdist + wheel
+        run: |
+          rm -rf dist/ build/ zapfetch_py.egg-info/
+          python -m build
+
+      - name: Publish via OIDC
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: python-sdk/dist/

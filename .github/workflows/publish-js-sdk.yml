@@ -1,0 +1,66 @@
+# Triggered when a GitHub Release is published with a tag of the form
+# `js-sdk/vX.Y.Z`. Verifies the tag matches package.json, runs the unit
+# suite, builds, then publishes to npm with provenance (SLSA 3).
+#
+# Required repo secret:
+#   NPM_TOKEN  (automation token, not interactive -- generate at
+#   npmjs.com/settings/{user}/tokens with 2FA bypass for automation)
+#
+# Required environment:
+#   npm  (Settings -> Environments -> New: npm, add required reviewer)
+
+name: publish-js-sdk
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write  # required for npm provenance
+
+jobs:
+  publish:
+    if: startsWith(github.event.release.tag_name, 'js-sdk/v')
+    runs-on: ubuntu-latest
+    environment: npm
+    defaults:
+      run:
+        working-directory: js-sdk
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: js-sdk/pnpm-lock.yaml
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Verify tag version matches package.json
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          TAG_VERSION="${TAG_NAME#js-sdk/v}"
+          CODE_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$CODE_VERSION" ]; then
+            echo "::error::tag version $TAG_VERSION != code version $CODE_VERSION"
+            exit 1
+          fi
+          echo "Verified: $TAG_VERSION"
+
+      - name: Install + test + build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run typecheck
+          pnpm run test:unit
+          pnpm run build
+
+      - name: Publish to npm with provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm publish --access public --provenance --no-git-checks

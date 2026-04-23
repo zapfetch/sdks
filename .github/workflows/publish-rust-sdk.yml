@@ -1,0 +1,55 @@
+# Triggered when a GitHub Release is published with a tag of the form
+# `rust-sdk/vX.Y.Z`. Verifies the tag matches Cargo.toml, runs the
+# test suite as a sanity gate, then publishes to crates.io.
+#
+# Required repo secret:
+#   CARGO_REGISTRY_TOKEN  (scope: publish-update; publish-new for first release)
+#
+# Required environment:
+#   crates  (Settings -> Environments -> New: crates, add required reviewer)
+
+name: publish-rust-sdk
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: startsWith(github.event.release.tag_name, 'rust-sdk/v')
+    runs-on: ubuntu-latest
+    environment: crates
+    defaults:
+      run:
+        working-directory: rust-sdk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag version matches Cargo.toml
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          TAG_VERSION="${TAG_NAME#rust-sdk/v}"
+          CODE_VERSION=$(grep -E '^version = ' Cargo.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          if [ "$TAG_VERSION" != "$CODE_VERSION" ]; then
+            echo "::error::tag version $TAG_VERSION != code version $CODE_VERSION"
+            exit 1
+          fi
+          echo "Verified: $TAG_VERSION"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust-sdk
+
+      - name: Sanity tests
+        run: cargo test --lib --locked
+
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --locked
