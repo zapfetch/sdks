@@ -6,12 +6,12 @@
 //!
 //! Run with: cargo test --test v2_e2e -- --ignored
 
+use serde_json::json;
+use std::env;
 use zapfetch::{
     AgentOptions, BatchScrapeOptions, Client, CrawlOptions, Format, JobStatus, MapOptions,
     ScrapeOptions, SearchOptions, SitemapMode,
 };
-use serde_json::json;
-use std::env;
 
 fn get_client() -> Client {
     let api_url = env::var("API_URL").expect("API_URL environment variable is required");

@@ -129,10 +129,7 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn start_agent(
-        &self,
-        options: AgentOptions,
-    ) -> Result<AgentResponse, Error> {
+    pub async fn start_agent(&self, options: AgentOptions) -> Result<AgentResponse, Error> {
         let headers = self.prepare_headers(None);
 
         let response = self
@@ -186,9 +183,7 @@ impl Client {
             .headers(self.prepare_headers(None))
             .send()
             .await
-            .map_err(|e| {
-                Error::HttpError(format!("Getting agent status {}", id.as_ref()), e)
-            })?;
+            .map_err(|e| Error::HttpError(format!("Getting agent status {}", id.as_ref()), e))?;
 
         self.handle_response(response, format!("agent status {}", id.as_ref()))
             .await
@@ -250,10 +245,7 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn agent(
-        &self,
-        options: AgentOptions,
-    ) -> Result<AgentStatusResponse, Error> {
+    pub async fn agent(&self, options: AgentOptions) -> Result<AgentStatusResponse, Error> {
         let poll_interval = options.poll_interval.unwrap_or(2000);
         let timeout = options.timeout;
 
@@ -324,9 +316,7 @@ impl Client {
             .headers(self.prepare_headers(None))
             .send()
             .await
-            .map_err(|e| {
-                Error::HttpError(format!("Cancelling agent {}", id.as_ref()), e)
-            })?;
+            .map_err(|e| Error::HttpError(format!("Cancelling agent {}", id.as_ref()), e))?;
 
         #[derive(Deserialize)]
         struct CancelResponse {
@@ -417,8 +407,7 @@ impl Client {
 
         match result.data {
             Some(data) => {
-                let typed: T =
-                    serde_json::from_value(data).map_err(Error::ResponseParseError)?;
+                let typed: T = serde_json::from_value(data).map_err(Error::ResponseParseError)?;
                 Ok(Some(typed))
             }
             None => Ok(None),

@@ -181,9 +181,7 @@ impl Client {
             .json(&body)
             .send()
             .await
-            .map_err(|e| {
-                Error::HttpError(format!("Searching for {:?}", query.as_ref()), e)
-            })?;
+            .map_err(|e| Error::HttpError(format!("Searching for {:?}", query.as_ref()), e))?;
 
         self.handle_response(response, "search").await
     }
