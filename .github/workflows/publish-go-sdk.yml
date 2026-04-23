@@ -1,0 +1,54 @@
+# Triggered when a GitHub Release is published with a tag of the form
+# `go-sdk/vX.Y.Z`. Go modules have no "upload" step -- publishing is
+# simply pushing the tag; proxy.golang.org picks it up automatically.
+# This workflow verifies the tag version matches the `Version` constant
+# in go-sdk/version.go, then warms the Go proxy so pkg.go.dev indexes
+# the release immediately.
+
+name: publish-go-sdk
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: startsWith(github.event.release.tag_name, 'go-sdk/v')
+    runs-on: ubuntu-latest
+    environment: go-proxy
+    defaults:
+      run:
+        working-directory: go-sdk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag version matches version.go
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          TAG_VERSION="${TAG_NAME#go-sdk/v}"
+          CODE_VERSION=$(grep -E 'const Version = ' version.go | sed -E 's/.*"([^"]+)".*/\1/')
+          if [ "$TAG_VERSION" != "$CODE_VERSION" ]; then
+            echo "::error::tag version $TAG_VERSION != code version $CODE_VERSION"
+            exit 1
+          fi
+          echo "Verified: $TAG_VERSION"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: go-sdk/go.sum
+
+      - name: Sanity tests
+        run: go test -race -count=1 ./...
+
+      - name: Warm the Go module proxy
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="${TAG_NAME#go-sdk/}"
+          GOPROXY=https://proxy.golang.org go mod download \
+            github.com/zapfetch/sdks/go-sdk@${VERSION} || true
